@@ -1,0 +1,98 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            String          @id @default(cuid())
+  name          String?
+  email         String?         @unique
+  emailVerified DateTime?
+  image         String?
+  accounts      Account[]
+  sessions      Session[]
+  businessName  String?
+  businessType  String?
+  kraPin        String?
+  phoneNumber   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
+  bankAccounts  BankAccount[]
+  transactions  Transaction[]
+}
+
+model BankAccount {
+  id            String        @id @default(cuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  bankName      String
+  accountNumber String
+  balance       Float
+  currency      String        @default("KES")
+  type          AccountType   @default(CHECKING)
+  lastSync      DateTime      @default(now())
+  transactions  Transaction[]
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  @@unique([userId, accountNumber])
+}
+
+model Transaction {
+  id          String    @id @default(cuid())
+  userId      String
+  user        User      @relation(fields: [userId], references: [id])
+  accountId   String
+  account     BankAccount @relation(fields: [accountId], references: [id])
+  date        DateTime
+  description String
+  amount      Float
+  type        TxType
+  category    String
+  reference   String?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([userId, date])
+  @@index([accountId, date])
+}
+
+model Account {
+  id                 String   @id @default(cuid())
+  userId             String
+  provider           String
+  providerAccountId  String
+  refresh_token      String?  @db.Text
+  access_token       String?  @db.Text
+  expires_at         Int?
+  token_type         String?
+  scope              String?
+  id_token           String?  @db.Text
+  session_state      String?
+  oauth_token        String?
+  oauth_token_secret String?
+  user               User     @relation(fields: [userId], references: [id])
+}
+
+model Session {
+  id             String   @id @default(cuid())
+  userId         String
+  expires        DateTime
+  sessionToken   String   @unique
+  accessToken    String   @unique
+  user           User     @relation(fields: [userId], references: [id])
+}
+
+enum AccountType {
+  CHECKING
+  SAVINGS
+}
+
+enum TxType {
+  CREDIT
+  DEBIT
+}
